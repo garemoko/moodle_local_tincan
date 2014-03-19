@@ -35,15 +35,16 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/mod/quiz/locallib.php');
 
 class tincan {
-	//TODO: don't hard code everything!
-	public static function tincan_quiz_attempt_started($eventdata){
+	public static function tincan_quiz_attempt_started($event){
+		global $CFG, $DB;
+		//not all of these will be used TODO: remove those which aren't used once all is said and done!
+		$course  = $DB->get_record('course', array('id' => $event->courseid));
+	    $attempt = $event->get_record_snapshot('quiz_attempts', $event->objectid);
+	    $quiz    = $event->get_record_snapshot('quiz', $attempt->quiz);
+	    $cm      = get_coursemodule_from_id('quiz', $event->get_context()->instanceid, $event->courseid);
 		
 		$statement = array( 
-			'actor' => array(
-				"name" => 'toby downes',
-				"mbox" => "mailto:test@example.com",
-				"objectType" => "Agent"
-			), 
+			'actor' => tincan_getactor(), 
 			'verb' => array(
 				'id' => 'http://adlnet.gov/expapi/verbs/attempted',
 				'display' => array(
@@ -52,24 +53,56 @@ class tincan {
 					),
 				),
 			'object' => array(
-				'id' =>  'http://exaple.com/hfjksdfhk', 
+				'id' =>  $CFG->wwwroot . '/mod/quiz/view.php?id='. $quiz->id, 
 				'definition' => array(
 					'name' => array(
-						'en-US' => 'my quiz',
-						'en-GB' => 'my quiz',
+						'en-US' => $quiz->name,
+						'en-GB' => $quiz->name,
 					), 
-				), 
+				),
 			), 
 		);
 		
+	
 		//send it
-		tincan_send_statement($statement, 'http://localhost/learninglocker/public/data/xAPI/', 'b8801ad982a3854ad58f2892e9f009a8cf81e378', '48fa05d1d9a7d21266c6577bcbea62a81f8804fa','1.0.0');//$tincan->tincanlrsendpoint, $tincan->tincanlrslogin, $tincan->tincanlrspass, $tincan->tincanlrsversion);	
+		tincan_send_statement($statement, get_config('local_tincan', 'lrsendpoint'), get_config('local_tincan', 'lrslogin'), get_config('local_tincan', 'lrspass'),get_config('local_tincan', 'lrsversion'));	
 		
 		return true;
 	}
 	
-	function tincan_quiz_attempt_submitted($eventdata){
+	public static function tincan_quiz_attempt_submitted($eventdata){
+		global $CFG, $DB;
+		//not all of these will be used TODO: remove those which aren't used once all is said and done!
+		$course  = $DB->get_record('course', array('id' => $event->courseid));
+	    $attempt = $event->get_record_snapshot('quiz_attempts', $event->objectid);
+	    $quiz    = $event->get_record_snapshot('quiz', $attempt->quiz);
+	    $cm      = get_coursemodule_from_id('quiz', $event->get_context()->instanceid, $event->courseid);
 		
+		$statement = array( 
+			'actor' => tincan_getactor(), 
+			'verb' => array(
+				'id' => 'http://adlnet.gov/expapi/verbs/completed',
+				'display' => array(
+					'en-US' => 'completed',
+					'en-GB' => 'completed',
+					),
+				),
+			'object' => array(
+				'id' =>  $CFG->wwwroot . '/mod/quiz/view.php?id='. $quiz->id, 
+				'definition' => array(
+					'name' => array(
+						'en-US' => $quiz->name,
+						'en-GB' => $quiz->name,
+					), 
+				),
+			), 
+		);
+		
+	
+		//send it
+		tincan_send_statement($statement, get_config('local_tincan', 'lrsendpoint'), get_config('local_tincan', 'lrslogin'), get_config('local_tincan', 'lrspass'),get_config('local_tincan', 'lrsversion'));		
+		
+		return true;
 	}
 }
 
